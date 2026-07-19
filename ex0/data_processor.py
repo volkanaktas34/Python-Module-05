@@ -7,6 +7,7 @@ class DataProcessor(ABC):
     def __init__(self) -> None:
         self._storage: list[str] = []
         self._processed: int = 0
+        self._total_processed: int = 0
 
     @abstractmethod
     def validate(self, data: Any) -> bool:
@@ -24,6 +25,9 @@ class DataProcessor(ABC):
         value = self._storage.pop(0)
 
         return rank, value
+
+    def get_stats(self) -> tuple[int, int]:
+        return self._total_processed, len(self._storage)
 
 
 class NumericProcessor(DataProcessor):
@@ -123,3 +127,56 @@ class LogProcessor(DataProcessor):
             )
             self._storage.append(entry)
             self._processed += 1
+
+
+def main() -> None:
+    print("=== Code Nexus - Data Processor ===")
+
+    numeric = NumericProcessor()
+    text = TextProcessor()
+    log = LogProcessor()
+
+    print("\nTesting Numeric Processor...")
+    print(f"Trying to validate input '42': {numeric.validate(42)}")
+    print(f"Trying to validate input 'Hello': {numeric.validate('Hello')}")
+
+    print("Test invalid ingestion of string 'foo' without prior validation:")
+    try:
+        numeric.ingest("foo")   # type: ignore
+    except ValueError as error:
+        print(f"Got exception: {error}")
+
+    print("Processing data: [1, 2, 3, 4, 5]")
+    numeric.ingest([1, 2, 3, 4, 5])
+    print("Extracting 3 values...")
+    for _ in range(3):
+        rank, value = numeric.output()
+        print(f"Numeric value {rank}: {value}")
+
+    print("\nTesting Text Processor...")
+    print(f"Trying to validate input '42': {text.validate(42)}")
+    print("Processing data: ['Hello', 'Nexus', 'World']")
+    text.ingest(['Hello', 'Nexus', 'World'])
+    print("Extracting 1 value...")
+    rank, value = text.output()
+    print(f"Text value {rank}: {value}")
+
+    print("\nTesting Log Processor...")
+    print(f"Trying to validate input 'Hello': {log.validate('Hello')}")
+    print(
+        "Processing data: "
+        "[{'log_level': 'NOTICE', 'log_message': 'Connection to server'}, "
+        "{'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}]"
+    )
+    log.ingest([
+        {'log_level': 'NOTICE', 'log_message': 'Connection to server'},
+        {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}
+    ])
+    print("Extracting 2 values...")
+    for _ in range(2):
+        rank, value = log.output()
+        print(f"Log entry {rank}: {value}")
+
+
+if __name__ == "__main__":
+    main()
