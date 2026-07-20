@@ -16,21 +16,21 @@ class DataStream():
 
     def process_stream(self, stream: list[Any]) -> None:
         for element in stream:
-            routed = False
+            processed = False
             for proc in self._processors:
                 if proc.validate(element):
                     try:
                         proc.ingest(element)
-                        routed = True
+                        processed = True
                         break
                     except ValueError:
                         continue
-            if not routed:
+            if not processed:
                 print(f"DataStream error - "
                       f"Can't process element in stream: {element}")
 
     def print_processors_stats(self) -> None:
-        print("== DataStream statistics ==")
+        print("\n== DataStream statistics ==")
         if not self._processors:
             print("No processor found, no data")
             return
@@ -44,15 +44,15 @@ class DataStream():
 
 if __name__ == "__main__":
     print("=== Code Nexus Data Stream ===")
-    print("Initialize Data Stream...")
-    stream_pipeline = DataStream()
-    stream_pipeline.print_processors_stats()
+    print("\nInitialize Data Stream...")
+    stream = DataStream()
+    stream.print_processors_stats()
 
     print("\nRegistering Numeric Processor")
     num_proc = NumericProcessor()
-    stream_pipeline.register_processor(num_proc)
+    stream.register_processor(num_proc)
 
-    batch = [
+    data = [
         'Hello world',
         [3.14, 1, 2.71],
         [{'log_level': 'WARNING',
@@ -62,19 +62,26 @@ if __name__ == "__main__":
         ['Hi', 'five']
     ]
 
-    print("Send first batch of data on stream...")
-    stream_pipeline.process_stream(batch)
-    stream_pipeline.print_processors_stats()
+    print(
+        "\nSend first batch of data on stream: "
+        "['Hello world', [3.14, -1, 2.71], "
+        "[{'log_level': 'WARNING', "
+        "'log_message': 'Telnet access! Use ssh instead'}, "
+        "{'log_level': 'INFO', 'log_message': 'User wil is connected'}], "
+        "42, ['Hi', 'five']]"
+    )
+    stream.process_stream(data)
+    stream.print_processors_stats()
 
     print("\nRegistering other data processors")
     text_proc = TextProcessor()
     log_proc = LogProcessor()
-    stream_pipeline.register_processor(text_proc)
-    stream_pipeline.register_processor(log_proc)
+    stream.register_processor(text_proc)
+    stream.register_processor(log_proc)
 
     print("Send the same batch again")
-    stream_pipeline.process_stream(batch)
-    stream_pipeline.print_processors_stats()
+    stream.process_stream(data)
+    stream.print_processors_stats()
 
     print(
         "\nConsume some elements from the data processors: "
@@ -87,4 +94,4 @@ if __name__ == "__main__":
     for _ in range(1):
         log_proc.output()
 
-    stream_pipeline.print_processors_stats()
+    stream.print_processors_stats()

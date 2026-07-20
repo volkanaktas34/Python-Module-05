@@ -6,7 +6,7 @@ class DataProcessor(ABC):
 
     def __init__(self) -> None:
         self._storage: list[str] = []
-        self._processed: int = 0
+        self._counter: int = 0
         self._total_processed: int = 0
 
     @abstractmethod
@@ -21,10 +21,11 @@ class DataProcessor(ABC):
         if not self._storage:
             raise IndexError("No data remaining in processor.")
 
-        rank = self._processed - len(self._storage)
-        value = self._storage.pop(0)
+        data = self._storage.pop(0)
+        rank = self._counter
+        self._counter += 1
 
-        return rank, value
+        return rank, data
 
     def get_stats(self) -> tuple[int, int]:
         return self._total_processed, len(self._storage)
@@ -45,14 +46,13 @@ class NumericProcessor(DataProcessor):
         if not self.validate(data):
             raise ValueError("Improper numeric data")
 
-        if isinstance(data, (int, float)):
+        if isinstance(data, list):
+            for item in data:
+                self._storage.append(str(item))
+                self._total_processed += 1
+        else:
             self._storage.append(str(data))
-            self._processed += 1
-            return
-
-        for item in data:
-            self._storage.append(str(item))
-            self._processed += 1
+            self._total_processed += 1
 
 
 class TextProcessor(DataProcessor):
@@ -65,21 +65,19 @@ class TextProcessor(DataProcessor):
                 if not isinstance(item, str):
                     return False
             return True
-
         return False
 
     def ingest(self, data: str | list[str]) -> None:
         if not self.validate(data):
             raise ValueError("Improper text data")
 
-        if isinstance(data, str):
+        if isinstance(data, list):
+            for item in data:
+                self._storage.append(item)
+                self._total_processed += 1
+        else:
             self._storage.append(data)
-            self._processed += 1
-            return
-
-        for item in data:
-            self._storage.append(item)
-            self._processed += 1
+            self._total_processed += 1
 
 
 class LogProcessor(DataProcessor):
@@ -102,31 +100,28 @@ class LogProcessor(DataProcessor):
                         return False
                     if not isinstance(value, str):
                         return False
-
             return True
-
         return False
 
     def ingest(self, data: dict[str, str] | list[dict[str, str]]) -> None:
         if not self.validate(data):
             raise ValueError("Improper log data")
 
-        if isinstance(data, dict):
+        if isinstance(data, list):
+            for item in data:
+                entry = (
+                    f"{item['log_level']}: "
+                    f"{item['log_message']}"
+                )
+                self._storage.append(entry)
+                self._total_processed += 1
+        else:
             entry = (
                 f"{data['log_level']}: "
                 f"{data['log_message']}"
             )
             self._storage.append(entry)
-            self._processed += 1
-            return
-
-        for item in data:
-            entry = (
-                f"{item['log_level']}: "
-                f"{item['log_message']}"
-            )
-            self._storage.append(entry)
-            self._processed += 1
+            self._total_processed += 1
 
 
 def main() -> None:
