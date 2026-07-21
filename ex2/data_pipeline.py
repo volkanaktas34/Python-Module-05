@@ -165,18 +165,18 @@ class DataStream():
 
     def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None:
         for proc in self._processors:
-            collected_data: list[tuple[int, str]] = []
+            data: list[tuple[int, str]] = []
             _, remaining = proc.get_stats()
 
             limit = min(nb, remaining)
             for _ in range(limit):
                 try:
                     rank, value = proc.output()
-                    collected_data.append((rank, value))
+                    data.append((rank, value))
                 except IndexError:
                     break
-            if collected_data:
-                plugin.process_output(collected_data)
+            if data:
+                plugin.process_output(data)
 
 
 class CSVExport:
