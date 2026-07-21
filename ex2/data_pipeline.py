@@ -201,7 +201,7 @@ class JSONExport:
         print(f"JSON Output:\n  {json}")
 
 
-if __name__ == "__main__":
+def main() -> None:
     print("=== Code Nexus Data Pipeline ===")
     print("\nInitialize Data Stream...")
     pipeline = DataStream()
@@ -267,3 +267,7 @@ if __name__ == "__main__":
     json_plugin = JSONExport()
     pipeline.output_pipeline(5, json_plugin)
     pipeline.print_processors_stats()
+
+
+if __name__ == "__main__":
+    main()

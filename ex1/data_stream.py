@@ -159,7 +159,7 @@ class DataStream():
                   f"remaining {remaining} on processor")
 
 
-if __name__ == "__main__":
+def main() -> None:
     print("=== Code Nexus Data Stream ===")
     print("\nInitialize Data Stream...")
     stream = DataStream()
@@ -212,3 +212,7 @@ if __name__ == "__main__":
         log_proc.output()
 
     stream.print_processors_stats()
+
+
+if __name__ == "__main__":
+    main()
