@@ -1,10 +1,127 @@
+from abc import ABC, abstractmethod
 from typing import Any
-from ex0.data_processor import (
-    DataProcessor,
-    NumericProcessor,
-    TextProcessor,
-    LogProcessor,
-)
+
+
+class DataProcessor(ABC):
+
+    def __init__(self) -> None:
+        self._storage: list[str] = []
+        self._counter: int = 0
+        self._total_processed: int = 0
+
+    @abstractmethod
+    def validate(self, data: Any) -> bool:
+        pass
+
+    @abstractmethod
+    def ingest(self, data: Any) -> None:
+        pass
+
+    def output(self) -> tuple[int, str]:
+        if not self._storage:
+            raise IndexError("No data remaining in processor.")
+
+        data = self._storage.pop(0)
+        rank = self._counter
+        self._counter += 1
+
+        return rank, data
+
+    def get_stats(self) -> tuple[int, int]:
+        return self._total_processed, len(self._storage)
+
+
+class NumericProcessor(DataProcessor):
+    def validate(self, data: Any) -> bool:
+        if isinstance(data, (int, float)):
+            return True
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, (int, float)):
+                    return False
+            return True
+        return False
+
+    def ingest(self, data: int | float | list[int | float]) -> None:
+        if not self.validate(data):
+            raise ValueError("Improper numeric data")
+
+        if isinstance(data, list):
+            for item in data:
+                self._storage.append(str(item))
+                self._total_processed += 1
+        else:
+            self._storage.append(str(data))
+            self._total_processed += 1
+
+
+class TextProcessor(DataProcessor):
+    def validate(self, data: Any) -> bool:
+        if isinstance(data, str):
+            return True
+
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, str):
+                    return False
+            return True
+        return False
+
+    def ingest(self, data: str | list[str]) -> None:
+        if not self.validate(data):
+            raise ValueError("Improper text data")
+
+        if isinstance(data, list):
+            for item in data:
+                self._storage.append(item)
+                self._total_processed += 1
+        else:
+            self._storage.append(data)
+            self._total_processed += 1
+
+
+class LogProcessor(DataProcessor):
+    def validate(self, data: Any) -> bool:
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if not isinstance(key, str):
+                    return False
+                if not isinstance(value, str):
+                    return False
+            return True
+
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, dict):
+                    return False
+
+                for key, value in item.items():
+                    if not isinstance(key, str):
+                        return False
+                    if not isinstance(value, str):
+                        return False
+            return True
+        return False
+
+    def ingest(self, data: dict[str, str] | list[dict[str, str]]) -> None:
+        if not self.validate(data):
+            raise ValueError("Improper log data")
+
+        if isinstance(data, list):
+            for item in data:
+                entry = (
+                    f"{item['log_level']}: "
+                    f"{item['log_message']}"
+                )
+                self._storage.append(entry)
+                self._total_processed += 1
+        else:
+            entry = (
+                f"{data['log_level']}: "
+                f"{data['log_message']}"
+            )
+            self._storage.append(entry)
+            self._total_processed += 1
 
 
 class DataStream():

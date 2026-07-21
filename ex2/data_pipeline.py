@@ -1,16 +1,182 @@
-from typing import Protocol, List, Tuple
-from ex0.data_processor import (
-    NumericProcessor,
-    TextProcessor,
-    LogProcessor,
-)
-from ex1.data_stream import DataStream
+from abc import ABC, abstractmethod
+from typing import Any, Protocol
+
+
+class DataProcessor(ABC):
+
+    def __init__(self) -> None:
+        self._storage: list[str] = []
+        self._counter: int = 0
+        self._total_processed: int = 0
+
+    @abstractmethod
+    def validate(self, data: Any) -> bool:
+        pass
+
+    @abstractmethod
+    def ingest(self, data: Any) -> None:
+        pass
+
+    def output(self) -> tuple[int, str]:
+        if not self._storage:
+            raise IndexError("No data remaining in processor.")
+
+        data = self._storage.pop(0)
+        rank = self._counter
+        self._counter += 1
+
+        return rank, data
+
+    def get_stats(self) -> tuple[int, int]:
+        return self._total_processed, len(self._storage)
+
+
+class NumericProcessor(DataProcessor):
+    def validate(self, data: Any) -> bool:
+        if isinstance(data, (int, float)):
+            return True
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, (int, float)):
+                    return False
+            return True
+        return False
+
+    def ingest(self, data: int | float | list[int | float]) -> None:
+        if not self.validate(data):
+            raise ValueError("Improper numeric data")
+
+        if isinstance(data, list):
+            for item in data:
+                self._storage.append(str(item))
+                self._total_processed += 1
+        else:
+            self._storage.append(str(data))
+            self._total_processed += 1
+
+
+class TextProcessor(DataProcessor):
+    def validate(self, data: Any) -> bool:
+        if isinstance(data, str):
+            return True
+
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, str):
+                    return False
+            return True
+        return False
+
+    def ingest(self, data: str | list[str]) -> None:
+        if not self.validate(data):
+            raise ValueError("Improper text data")
+
+        if isinstance(data, list):
+            for item in data:
+                self._storage.append(item)
+                self._total_processed += 1
+        else:
+            self._storage.append(data)
+            self._total_processed += 1
+
+
+class LogProcessor(DataProcessor):
+    def validate(self, data: Any) -> bool:
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if not isinstance(key, str):
+                    return False
+                if not isinstance(value, str):
+                    return False
+            return True
+
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, dict):
+                    return False
+
+                for key, value in item.items():
+                    if not isinstance(key, str):
+                        return False
+                    if not isinstance(value, str):
+                        return False
+            return True
+        return False
+
+    def ingest(self, data: dict[str, str] | list[dict[str, str]]) -> None:
+        if not self.validate(data):
+            raise ValueError("Improper log data")
+
+        if isinstance(data, list):
+            for item in data:
+                entry = (
+                    f"{item['log_level']}: "
+                    f"{item['log_message']}"
+                )
+                self._storage.append(entry)
+                self._total_processed += 1
+        else:
+            entry = (
+                f"{data['log_level']}: "
+                f"{data['log_message']}"
+            )
+            self._storage.append(entry)
+            self._total_processed += 1
 
 
 class ExportPlugin(Protocol):
-
     def process_output(self, data: list[tuple[int, str]]) -> None:
         ...
+
+
+class DataStream():
+    def __init__(self) -> None:
+        self._processors: list[DataProcessor] = []
+
+    def register_processor(self, proc: DataProcessor) -> None:
+        self._processors.append(proc)
+
+    def process_stream(self, stream: list[Any]) -> None:
+        for element in stream:
+            processed = False
+            for proc in self._processors:
+                if proc.validate(element):
+                    try:
+                        proc.ingest(element)
+                        processed = True
+                        break
+                    except ValueError:
+                        continue
+            if not processed:
+                print(f"DataStream error - "
+                      f"Can't process element in stream: {element}")
+
+    def print_processors_stats(self) -> None:
+        print("\n== DataStream statistics ==")
+        if not self._processors:
+            print("No processor found, no data")
+            return
+
+        for proc in self._processors:
+            name = proc.__class__.__name__.replace("Processor", " Processor")
+            total, remaining = proc.get_stats()
+            print(f"{name}: total {total} items processed, "
+                  f"remaining {remaining} on processor")
+
+    def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None:
+        for proc in self._processors:
+            collected_data: list[tuple[int, str]] = []
+            _, remaining = proc.get_stats()
+
+            limit = min(nb, remaining)
+            for _ in range(limit):
+                try:
+                    rank, value = proc.output()
+                    collected_data.append((rank, value))
+                except IndexError:
+                    break
+            if collected_data:
+                plugin.process_output(collected_data)
 
 
 class CSVExport:
@@ -35,27 +201,10 @@ class JSONExport:
         print(f"JSON Output:\n  {json}")
 
 
-class AdvancedDataStream(DataStream):
-    def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None:
-        for proc in self._processors:
-            collected_data: List[Tuple[int, str]] = []
-            _, remaining = proc.get_stats()
-
-            limit = min(nb, remaining)
-            for _ in range(limit):
-                try:
-                    rank, val = proc.output()
-                    collected_data.append((rank, val))
-                except IndexError:
-                    break
-            if collected_data:
-                plugin.process_output(collected_data)
-
-
 if __name__ == "__main__":
     print("=== Code Nexus Data Pipeline ===")
     print("\nInitialize Data Stream...")
-    pipeline = AdvancedDataStream()
+    pipeline = DataStream()
     pipeline.print_processors_stats()
 
     print("\nRegistering Processors...")
@@ -74,7 +223,7 @@ if __name__ == "__main__":
     pipeline.register_processor(text_proc)
     pipeline.register_processor(log_proc)
 
-    batch_1 = [
+    data_1 = [
         'Hello world',
         [3.14, 1, 2.71],
         [{'log_level': 'WARNING',
@@ -85,7 +234,7 @@ if __name__ == "__main__":
         ['Hi', 'five']
     ]
 
-    pipeline.process_stream(batch_1)
+    pipeline.process_stream(data_1)
     pipeline.print_processors_stats()
 
     print("\nSend 3 processed data from each processor to a CSV plugin:")
@@ -101,7 +250,7 @@ if __name__ == "__main__":
         " 'log_message': 'Certificate expires in 10 days'}], "
         "[32, 42, 64, 84, 128, 168], 'World hello']"
     )
-    batch_2 = [
+    data_2 = [
         21,
         ['I love AI', 'LLMs are wonderful', 'Stay healthy'],
         [{'log_level': 'ERROR', 'log_message': '500 server crash'},
@@ -111,7 +260,7 @@ if __name__ == "__main__":
         'World hello'
     ]
 
-    pipeline.process_stream(batch_2)
+    pipeline.process_stream(data_2)
     pipeline.print_processors_stats()
 
     print("\nSend 5 processed data from each processor to a JSON plugin:")
