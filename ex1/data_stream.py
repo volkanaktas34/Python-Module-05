@@ -3,7 +3,6 @@ from typing import Any
 
 
 class DataProcessor(ABC):
-
     def __init__(self) -> None:
         self._storage: list[str] = []
         self._counter: int = 0
@@ -45,7 +44,6 @@ class NumericProcessor(DataProcessor):
     def ingest(self, data: int | float | list[int | float]) -> None:
         if not self.validate(data):
             raise ValueError("Improper numeric data")
-
         if isinstance(data, list):
             for item in data:
                 self._storage.append(str(item))
@@ -59,7 +57,6 @@ class TextProcessor(DataProcessor):
     def validate(self, data: Any) -> bool:
         if isinstance(data, str):
             return True
-
         if isinstance(data, list):
             for item in data:
                 if not isinstance(item, str):
@@ -70,7 +67,6 @@ class TextProcessor(DataProcessor):
     def ingest(self, data: str | list[str]) -> None:
         if not self.validate(data):
             raise ValueError("Improper text data")
-
         if isinstance(data, list):
             for item in data:
                 self._storage.append(item)
@@ -89,12 +85,10 @@ class LogProcessor(DataProcessor):
                 if not isinstance(value, str):
                     return False
             return True
-
         if isinstance(data, list):
             for item in data:
                 if not isinstance(item, dict):
                     return False
-
                 for key, value in item.items():
                     if not isinstance(key, str):
                         return False
@@ -106,7 +100,6 @@ class LogProcessor(DataProcessor):
     def ingest(self, data: dict[str, str] | list[dict[str, str]]) -> None:
         if not self.validate(data):
             raise ValueError("Improper log data")
-
         if isinstance(data, list):
             for item in data:
                 entry = (
@@ -151,7 +144,6 @@ class DataStream():
         if not self._processors:
             print("No processor found, no data")
             return
-
         for proc in self._processors:
             name = proc.__class__.__name__.replace("Processor", " Processor")
             total, remaining = proc.get_stats()
