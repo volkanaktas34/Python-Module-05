@@ -22,7 +22,6 @@ class DataProcessor(ABC):
         data = self._storage.pop(0)
         rank = self._counter
         self._counter += 1
-
         return rank, data
 
     def get_stats(self) -> tuple[int, int]:
