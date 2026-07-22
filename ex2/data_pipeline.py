@@ -19,11 +19,9 @@ class DataProcessor(ABC):
     def output(self) -> tuple[int, str]:
         if not self._storage:
             raise IndexError("No data remaining in processor.")
-
         data = self._storage.pop(0)
         rank = self._counter
         self._counter += 1
-
         return rank, data
 
     def get_stats(self) -> tuple[int, int]:
@@ -198,7 +196,7 @@ def main() -> None:
     pipeline = DataStream()
     pipeline.print_processors_stats()
 
-    print("\nRegistering Processors...")
+    print("\nRegistering Processors")
     print(
         "\nSend first batch of data on stream: "
         "['Hello world', [3.14, -1, 2.71],"
