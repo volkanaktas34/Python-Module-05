@@ -191,7 +191,7 @@ class JSONExport:
 
 
 def main() -> None:
-    print("=== Code Nexus Data Pipeline ===")
+    print("=== Code Nexus - Data Pipeline ===")
     print("\nInitialize Data Stream...")
     pipeline = DataStream()
     pipeline.print_processors_stats()

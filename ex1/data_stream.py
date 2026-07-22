@@ -150,7 +150,7 @@ class DataStream():
 
 
 def main() -> None:
-    print("=== Code Nexus Data Stream ===")
+    print("=== Code Nexus - Data Stream ===")
     print("\nInitialize Data Stream...")
     stream = DataStream()
     stream.print_processors_stats()
